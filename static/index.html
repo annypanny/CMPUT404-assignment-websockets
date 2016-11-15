@@ -6,14 +6,11 @@
     <meta content='width=device-width; height=device-height; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;' name='viewport' />
     <meta name="viewport" content="width=device-width" />
     <meta name="license" content="
-        Copyright 2013 Google, Abram Hindle, Xinyi Pan
-
+        Copyright 2013 Google, Abram Hindle
         Licensed under the Apache License, Version 2.0 (the "License");
         you may not use this file except in compliance with the License.
         You may obtain a copy of the License at
-
             http://www.apache.org/licenses/LICENSE-2.0
-
         Unless required by applicable law or agreed to in writing, software
         distributed under the License is distributed on an "AS IS" BASIS,
         WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -35,13 +32,11 @@ var W = canvas.width  = window.innerWidth-6;
 var H = canvas.height = window.innerHeight-50;
 var wscounter = 0;
 var socket;
-
 function debug(str) {
     var debugDiv = document.getElementById('debug');
     debugDiv.innerHTML = "" + str;
 }
 debug("Test");
-
 world = {};
 
 // https://www.paulirish.com/2009/random-hex-color-code-snippets/
@@ -64,7 +59,6 @@ function drawCircle(context,entity) {
         stroke();
     }
 }
-
 function prepEntity(entity) {
     if (!entity["colour"]) {
         entity["colour"] = "#FF0000";
@@ -74,16 +68,13 @@ function prepEntity(entity) {
     }
     return entity;
 }
-
 function clearFrame() {
     with(context) {
 	moveTo(0,0);
 	fillStyle = "#000";
 	fillRect(0,0,W,H);
     }
-
 }
-
 // This actually draws the frame
 function renderFrame() {
     clearFrame();
@@ -92,13 +83,11 @@ function renderFrame() {
         drawCircle(context,prepEntity(entity));
     }
 }
-
 var drawNext = true;
 // Signals that there's something to be drawn
 function drawNextFrame() {
     drawNext = true;
 }
-
 // This optionally draws the frame, call this if you're not sure if you should update
 // the canvas
 function drawFrame() {
@@ -107,10 +96,8 @@ function drawFrame() {
         drawNext = false;
     }
 }
-
 // This is unpleasent, canvas clicks are not handled well
 // So use this code, it works well on multitouch devices as well.
-
 function getPosition(e) {
 	if ( e.targetTouches && e.targetTouches.length > 0) {
 		var touch = e.targetTouches[0];
@@ -126,21 +113,19 @@ function getPosition(e) {
 		return [x,y];
 	}
 }
-
 function addEntity(entity, data) {
     world[entity] = data;
     drawNextFrame(); // (but should we?)
     //XXX: Send a XHTML Request that updates the entity you just modified!
-    content = dict()
-    content[entity] = data
-    socket.send(json.dumps(content))
+    content={};
+    content[entity]=data;
+    socket.send(JSON.stringify(content));
 }
 var counter = 0;
 function addEntityWithoutName(data) {
     var name = "X"+(counter++)%100;
     addEntity(name,data);
 }
-
 // canvas + mouse/touch is complicated
 // I give you this because well the mouse/touch stuff is a total
 // pain to get right. This has some out of context bug too.
@@ -221,7 +206,6 @@ mouse = (function() {
             self.lasttouch = e;
             return self.mousemove(e);
 	},
-
         // Install the mouse listeners
 	mouseinstall: function() {
             canvas.addEventListener("mousedown",  self.mousedown, false);
@@ -242,38 +226,40 @@ mouse = (function() {
 mouse.mousedowners.push(function(x,y,clicked,e) {
     addEntityWithoutName({'x':x,'y':y,'colour':getRandomColor()});
 });
-
 mouse.mouseuppers.push(function(x,y,clicked,e) {
     addEntityWithoutName({'x':x,'y':y,'colour':getRandomColor()});
 });
-
 mouse.mousedraggers.push(function(x,y,clicked,e) {
     addEntityWithoutName({'x':x,'y':y,'colour':getRandomColor(),
                           'radius':10});
 });
-
-
 function update() {
     drawFrame();
 }
-
-
 function wsSetup() {
     var url = "ws://"+host+"/subscribe";
     socket = new WebSocket(url);
     socket.onopen = function() {
         //XXX: TODO What are you going to do here?
         var xhr = new XMLHttpRequest();
-        xhr.open('GET','/world');
-        xhr.onreadystatechange = function() {
-          if (xhr.readyState === 4) {
-            if (xhr.status === 200) {
-              var data = JSON.parse(xhr.responseText);
-              world = data;
-              drawFrame();
+		xhr.onreadystatechange = function () {
+    		if (xhr.readyState==4) {
+    		    try {
+    		        if (xhr.status==200) {
+    		        	var data=JSON.parse(xhr.responseText);
+    		 			world=data;
+                		drawFrame();
+    		        }
+                }
+    		    catch(e) {
+    		        alert('Error: ' + e.name);
+                }
             }
-          }
-        }
+        };
+        xhr.open('GET', "/world");
+		xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.setRequestHeader('Accept', 'application/json');
+	    xhr.send(null);
     };
     socket.onerror = function(msg) {
         debug("WebSocket Error:" + msg.data);
@@ -283,8 +269,8 @@ function wsSetup() {
             debug("WebSocket Recv:" + msg.data);
             //XXX: TODO What are you going to do here?
             var message = JSON.parse(msg.data);
-            for (i in message) {
-              world[i] = message[i];
+            for (k in message){
+                world[k] = message[k];
             }
             drawNextFrame();
         } catch (e) {
@@ -292,16 +278,9 @@ function wsSetup() {
         }
     };
 }
-
 wsSetup();
-
-
-
-
 // 30 frames per second
 setInterval( update, 1000/30.0);
-
-
     </script>
 </body>
 </html>
